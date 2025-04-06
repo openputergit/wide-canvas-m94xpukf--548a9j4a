@@ -1,0 +1,3198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyHRPro - HRMS Solution</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar {
+            height: calc(100vh - 64px);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .chart-container {
+            width: 100%;
+            height: 250px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 40;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+        .login-bg {
+            background-image: linear-gradient(to right, #3b82f6, #2563eb);
+        }
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .pagination-btn {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        input[type="date"], input[type="time"], select, input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
+            border: 1px solid #d1d5db;
+            padding: 0.5rem;
+        }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="fixed inset-0 z-50 bg-white flex flex-col md:flex-row">
+        <div class="login-bg hidden md:flex md:w-1/2 p-10 text-white items-center justify-center">
+            <div class="max-w-md">
+                <h1 class="text-4xl font-bold mb-6">MyHRPro</h1>
+                <p class="text-xl mb-8">Complete Human Resource Management System</p>
+                <ul class="space-y-3">
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Employee Management</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Leave Management</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Attendance Tracking</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Payroll Management</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Performance Reviews</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Recruitment Module</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="md:w-1/2 p-10 flex items-center justify-center">
+            <div class="w-full max-w-md">
+                <div class="text-center mb-8 md:hidden">
+                    <h1 class="text-3xl font-bold text-blue-600">MyHRPro</h1>
+                    <p class="text-gray-600">Complete Human Resource Management System</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-semibold mb-6 text-center">Sign In</h2>
+                    <div class="flex mb-4 border rounded-md">
+                        <button id="loginTab" class="flex-1 py-2 font-medium rounded-l-md bg-blue-600 text-white">Login</button>
+                        <button id="signupTab" class="flex-1 py-2 font-medium rounded-r-md">Sign Up</button>
+                    </div>
+                    
+                    <!-- Login Form -->
+                    <form id="loginForm" class="tab-content active space-y-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">Email</label>
+                            <input type="email" id="loginEmail" placeholder="Your email" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">Password</label>
+                            <input type="password" id="loginPassword" placeholder="Your password" required>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2">
+                                <span class="text-sm text-gray-600">Remember me</span>
+                            </label>
+                            <a href="#" class="text-sm text-blue-600 hover:underline">Forgot password?</a>
+                        </div>
+                        <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+                            Sign In
+                        </button>
+                    </form>
+                    
+                    <!-- Signup Form -->
+                    <form id="signupForm" class="tab-content space-y-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">Full Name</label>
+                            <input type="text" id="signupName" placeholder="Your full name" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">Email</label>
+                            <input type="email" id="signupEmail" placeholder="Your email" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">Password</label>
+                            <input type="password" id="signupPassword" placeholder="Create password" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">Role</label>
+                            <select id="signupRole">
+                                <option value="employee">Employee</option>
+                                <option value="hr">HR</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+                            Create Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white h-16 flex items-center justify-between px-4 sticky top-0 z-50">
+        <div class="flex items-center">
+            <button id="menuToggle" class="md:hidden mr-4">
+                <i class="bi bi-list text-2xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">MyHRPro</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="relative">
+                <button id="notificationBtn" class="relative">
+                    <i class="bi bi-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </button>
+                <div id="notificationDropdown" class="notification-dropdown bg-white rounded-md shadow-lg border">
+                    <div class="p-3 border-b">
+                        <h3 class="font-semibold">Notifications</h3>
+                    </div>
+                    <div class="max-h-60 overflow-y-auto">
+                        <a href="#" class="block p-3 hover:bg-gray-50 border-b">
+                            <p class="font-medium text-sm">Leave request approved</p>
+                            <p class="text-xs text-gray-500">Your leave request has been approved by HR</p>
+                            <p class="text-xs text-gray-400 mt-1">2 hours ago</p>
+                        </a>
+                        <a href="#" class="block p-3 hover:bg-gray-50 border-b">
+                            <p class="font-medium text-sm">New employee joined</p>
+                            <p class="text-xs text-gray-500">Sarah Johnson joined as UI Designer</p>
+                            <p class="text-xs text-gray-400 mt-1">5 hours ago</p>
+                        </a>
+                        <a href="#" class="block p-3 hover:bg-gray-50">
+                            <p class="font-medium text-sm">Performance review reminder</p>
+                            <p class="text-xs text-gray-500">Please complete your Q1 review by Friday</p>
+                            <p class="text-xs text-gray-400 mt-1">1 day ago</p>
+                        </a>
+                    </div>
+                    <div class="p-2 text-center border-t">
+                        <a href="#" class="text-sm text-blue-600 hover:underline">View all notifications</a>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 relative group">
+                <img id="userAvatar" src="https://ui-avatars.com/api/?name=John+Doe" class="w-8 h-8 rounded-full">
+                <span class="hidden md:inline" id="userName">John Doe</span>
+                <div class="absolute right-0 top-full mt-1 w-48 bg-white rounded shadow-lg py-2 hidden group-hover:block z-50">
+                    <a href="#profile" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                        <i class="bi bi-person-circle mr-2"></i> Profile
+                    </a>
+                    <a href="#settings" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                        <i class="bi bi-gear mr-2"></i> Settings
+                    </a>
+                    <hr class="my-1">
+                    <button id="logoutBtn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">
+                        <i class="bi bi-box-arrow-right mr-2"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar bg-white w-64 border-r">
+            <nav class="p-4">
+                <div class="space-y-2">
+                    <a href="#dashboard" class="nav-link flex items-center gap-2 p-2 rounded hover:bg-blue-50 text-blue-600">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#employees" class="nav-link flex items-center gap-2 p-2 rounded hover:bg-blue-50">
+                        <i class="bi bi-people"></i>
+                        <span>Employees</span>
+                    </a>
+                    <a href="#leave" class="nav-link flex items-center gap-2 p-2 rounded hover:bg-blue-50">
+                        <i class="bi bi-calendar-check"></i>
+                        <span>Leave Management</span>
+                    </a>
+                    <a href="#attendance" class="nav-link flex items-center gap-2 p-2 rounded hover:bg-blue-50">
+                        <i class="bi bi-clock"></i>
+                        <span>Attendance</span>
+                    </a>
+                    <a href="#payroll" class="nav-link flex items-center gap-2 p-2 rounded hover:bg-blue-50">
+                        <i class="bi bi-cash"></i>
+                        <span>Payroll</span>
+                    </a>
+                    <a href="#performance" class="nav-link flex items-center gap-2 p-2 rounded hover:bg-blue-50">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Performance</span>
+                    </a>
+                    <a href="#recruitment" class="nav-link flex items-center gap-2 p-2 rounded hover:bg-blue-50">
+                        <i class="bi bi-briefcase"></i>
+                        <span>Recruitment</span>
+                    </a>
+                    <div class="mt-6 pt-6 border-t">
+                        <div id="roleIndicator" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded inline-flex items-center">
+                            <i class="bi bi-shield-lock mr-1"></i>
+                            <span>Admin</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 overflow-auto">
+            <!-- Dashboard Section -->
+            <div id="dashboardContent" class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Dashboard</h2>
+                    <div class="flex gap-2">
+                        <select id="dashboardPeriod" class="border rounded-md px-3 py-1 text-sm">
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="quarter">This Quarter</option>
+                        </select>
+                        <button class="bg-blue-50 text-blue-600 px-3 py-1 rounded border border-blue-200 text-sm">
+                            <i class="bi bi-arrow-repeat mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Total Employees</p>
+                                <h3 class="text-2xl font-bold">247</h3>
+                                <p class="text-xs text-green-600 mt-1">
+                                    <i class="bi bi-arrow-up-short"></i> +5% from last month
+                                </p>
+                            </div>
+                            <i class="bi bi-people text-3xl text-blue-500"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">On Leave Today</p>
+                                <h3 class="text-2xl font-bold">12</h3>
+                                <p class="text-xs text-orange-600 mt-1">
+                                    <i class="bi bi-arrow-up-short"></i> +2 from yesterday
+                                </p>
+                            </div>
+                            <i class="bi bi-calendar2-minus text-3xl text-orange-500"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">New Applications</p>
+                                <h3 class="text-2xl font-bold">18</h3>
+                                <p class="text-xs text-green-600 mt-1">
+                                    <i class="bi bi-arrow-up-short"></i> +12 this week
+                                </p>
+                            </div>
+                            <i class="bi bi-file-earmark-text text-3xl text-green-500"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Pending Reviews</p>
+                                <h3 class="text-2xl font-bold">8</h3>
+                                <p class="text-xs text-red-600 mt-1">
+                                    <i class="bi bi-exclamation-circle"></i> 2 overdue
+                                </p>
+                            </div>
+                            <i class="bi bi-stack text-3xl text-purple-500"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium mb-4">Attendance Overview</h3>
+                        <div class="chart-container">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium mb-4">Department Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="departmentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-lg font-semibold mb-4">Quick Actions</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="showModal('addEmployee')" class="p-4 border rounded-lg hover:bg-blue-50 text-center">
+                            <i class="bi bi-person-plus text-2xl text-blue-600 mb-2"></i>
+                            <p class="text-sm">Add Employee</p>
+                        </button>
+                        <button onclick="showModal('addLeave')" class="p-4 border rounded-lg hover:bg-blue-50 text-center">
+                            <i class="bi bi-calendar-plus text-2xl text-green-600 mb-2"></i>
+                            <p class="text-sm">Apply Leave</p>
+                        </button>
+                        <button onclick="showModal('attendance')" class="p-4 border rounded-lg hover:bg-blue-50 text-center">
+                            <i class="bi bi-clock-history text-2xl text-orange-600 mb-2"></i>
+                            <p class="text-sm">Mark Attendance</p>
+                        </button>
+                        <button onclick="showModal('payslip')" class="p-4 border rounded-lg hover:bg-blue-50 text-center">
+                            <i class="bi bi-file-earmark-text text-2xl text-purple-600 mb-2"></i>
+                            <p class="text-sm">Generate Payslip</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-lg font-semibold mb-4">Recent Activities</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <i class="bi bi-person-plus text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">New employee joined</p>
+                                <p class="text-sm text-gray-500">Sarah Johnson - UI Designer</p>
+                            </div>
+                            <span class="ml-auto text-sm text-gray-500">2 hours ago</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                <i class="bi bi-calendar-check text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Leave approved</p>
+                                <p class="text-sm text-gray-500">Mike's leave request approved by HR</p>
+                            </div>
+                            <span class="ml-auto text-sm text-gray-500">4 hours ago</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                <i class="bi bi-cash text-purple-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Payroll processed</p>
+                                <p class="text-sm text-gray-500">Monthly payroll completed for 247 employees</p>
+                            </div>
+                            <span class="ml-auto text-sm text-gray-500">Yesterday</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employees Section -->
+            <div id="employeesContent" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Employee Management</h2>
+                    <button onclick="showModal('addEmployee')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                        <i class="bi bi-person-plus mr-2"></i> Add Employee
+                    </button>
+                </div>
+
+                <!-- Search & Filter -->
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1">
+                            <div class="relative">
+                                <input type="text" id="employeeSearch" placeholder="Search employees..." class="pl-10 pr-4 py-2 rounded-md border-gray-300 w-full">
+                                <i class="bi bi-search absolute left-3 top-2.5 text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="departmentFilter" class="rounded-md border-gray-300">
+                                <option value="">All Departments</option>
+                                <option value="IT">IT</option>
+                                <option value="HR">HR</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Marketing">Marketing</option>
+                            </select>
+                            <select id="statusFilter" class="rounded-md border-gray-300">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee Table -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table id="employeeTable" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Join Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=John+Doe" alt="">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">John Doe</div>
+                                                <div class="text-sm text-gray-500">john.doe@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">EMP001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">IT</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">01/05/2021</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showModal('viewEmployee', 'EMP001')"><i class="bi bi-eye"></i></button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3" onclick="showModal('editEmployee', 'EMP001')"><i class="bi bi-pencil"></i></button>
+                                        <button class="text-red-600 hover:text-red-900"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Sarah+Johnson" alt="">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Sarah Johnson</div>
+                                                <div class="text-sm text-gray-500">sarah.j@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">EMP002</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">UI/UX</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">15/06/2022</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showModal('viewEmployee', 'EMP002')"><i class="bi bi-eye"></i></button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3" onclick="showModal('editEmployee', 'EMP002')"><i class="bi bi-pencil"></i></button>
+                                        <button class="text-red-600 hover:text-red-900"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Mark+Smith" alt="">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Mark Smith</div>
+                                                <div class="text-sm text-gray-500">mark.s@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">EMP003</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Finance</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">03/02/2020</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Inactive</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showModal('viewEmployee', 'EMP003')"><i class="bi bi-eye"></i></button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3" onclick="showModal('editEmployee', 'EMP003')"><i class="bi bi-pencil"></i></button>
+                                        <button class="text-red-600 hover:text-red-900"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Emily+Roberts" alt="">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Emily Roberts</div>
+                                                <div class="text-sm text-gray-500">emily.r@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">EMP004</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">HR</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">22/09/2021</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showModal('viewEmployee', 'EMP004')"><i class="bi bi-eye"></i></button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3" onclick="showModal('editEmployee', 'EMP004')"><i class="bi bi-pencil"></i></button>
+                                        <button class="text-red-600 hover:text-red-900"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Michael+Brown" alt="">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Michael Brown</div>
+                                                <div class="text-sm text-gray-500">michael.b@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">EMP005</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Marketing</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">14/03/2021</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showModal('viewEmployee', 'EMP005')"><i class="bi bi-eye"></i></button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3" onclick="showModal('editEmployee', 'EMP005')"><i class="bi bi-pencil"></i></button>
+                                        <button class="text-red-600 hover:text-red-900"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing <span class="font-medium">1</span> to <span class="font-medium">5</span> of <span class="font-medium">25</span> results
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600 hover:bg-blue-50">
+                                        1
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        2
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        3
+                                    </a>
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                        ...
+                                    </span>
+                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        5
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Management Section -->
+            <div id="leaveContent" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Leave Management</h2>
+                    <button onclick="showModal('addLeave')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                        <i class="bi bi-calendar-plus mr-2"></i> Apply for Leave
+                    </button>
+                </div>
+
+                <!-- Leave Balance Card -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 bg-blue-50 border-b border-blue-100">
+                        <h3 class="font-medium">Your Leave Balance</h3>
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="border rounded-lg p-3 text-center">
+                                <p class="text-sm text-gray-500">Casual Leave</p>
+                                <p class="text-xl font-bold text-blue-600">8 <span class="text-sm text-gray-500">/ 12</span></p>
+                            </div>
+                            <div class="border rounded-lg p-3 text-center">
+                                <p class="text-sm text-gray-500">Sick Leave</p>
+                                <p class="text-xl font-bold text-green-600">7 <span class="text-sm text-gray-500">/ 10</span></p>
+                            </div>
+                            <div class="border rounded-lg p-3 text-center">
+                                <p class="text-sm text-gray-500">Paid Leave</p>
+                                <p class="text-xl font-bold text-purple-600">15 <span class="text-sm text-gray-500">/ 20</span></p>
+                            </div>
+                            <div class="border rounded-lg p-3 text-center">
+                                <p class="text-sm text-gray-500">Unpaid Leave</p>
+                                <p class="text-xl font-bold text-gray-600">∞</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Requests -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-medium">Leave Requests</h3>
+                        <div class="flex gap-2">
+                            <select id="leaveStatusFilter" class="text-sm rounded-md border-gray-300">
+                                <option value="">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                            <select id="leaveTypeFilter" class="text-sm rounded-md border-gray-300">
+                                <option value="">All Types</option>
+                                <option value="Casual">Casual</option>
+                                <option value="Sick">Sick</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Unpaid">Unpaid</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">Casual</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">15 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">17 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">3</td>
+                                    <td class="px-6 py-4">Family function</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-red-600 hover:text-red-900" title="Cancel request">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">Sick</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">02 Apr, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">04 Apr, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">3</td>
+                                    <td class="px-6 py-4">Fever and cold</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Approved</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900" title="View details">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">Paid</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">10 Mar, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">15 Mar, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">6</td>
+                                    <td class="px-6 py-4">Vacation</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Approved</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900" title="View details">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">Casual</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">22 Feb, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">22 Feb, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">1</td>
+                                    <td class="px-6 py-4">Personal work</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Rejected</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900" title="View details">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing <span class="font-medium">1</span> to <span class="font-medium">4</span> of <span class="font-medium">12</span> results
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600 hover:bg-blue-50">
+                                        1
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        2
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        3
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team On Leave Today -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b">
+                        <h3 class="font-medium">Team Members on Leave Today</h3>
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="border rounded-lg p-3 flex items-center gap-3">
+                                <img src="https://ui-avatars.com/api/?name=Alex+Wilson" class="h-12 w-12 rounded-full">
+                                <div>
+                                    <p class="font-medium">Alex Wilson</p>
+                                    <p class="text-sm text-gray-500">IT Department</p>
+                                    <p class="text-xs text-blue-600">Casual Leave</p>
+                                </div>
+                            </div>
+                            <div class="border rounded-lg p-3 flex items-center gap-3">
+                                <img src="https://ui-avatars.com/api/?name=Lisa+Chen" class="h-12 w-12 rounded-full">
+                                <div>
+                                    <p class="font-medium">Lisa Chen</p>
+                                    <p class="text-sm text-gray-500">Marketing Department</p>
+                                    <p class="text-xs text-green-600">Sick Leave</p>
+                                </div>
+                            </div>
+                            <div class="border rounded-lg p-3 flex items-center gap-3">
+                                <img src="https://ui-avatars.com/api/?name=Mike+Johnson" class="h-12 w-12 rounded-full">
+                                <div>
+                                    <p class="font-medium">Mike Johnson</p>
+                                    <p class="text-sm text-gray-500">Finance Department</p>
+                                    <p class="text-xs text-purple-600">Paid Leave</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Section -->
+            <div id="attendanceContent" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Attendance Management</h2>
+                    <div class="flex gap-2">
+                        <button id="checkInBtn" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                            <i class="bi bi-box-arrow-in-right mr-2"></i> Check In
+                        </button>
+                        <button id="checkOutBtn" class="bg-red-600 text-white px-4 py-2 rounded-md text-sm flex items-center" disabled>
+                            <i class="bi bi-box-arrow-right mr-2"></i> Check Out
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Today's Status -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Today's Status</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="border rounded-lg p-4">
+                            <p class="text-gray-500 text-sm">Check In Time</p>
+                            <p class="text-2xl font-semibold" id="checkInTime">--:--</p>
+                        </div>
+                        <div class="border rounded-lg p-4">
+                            <p class="text-gray-500 text-sm">Check Out Time</p>
+                            <p class="text-2xl font-semibold" id="checkOutTime">--:--</p>
+                        </div>
+                        <div class="border rounded-lg p-4">
+                            <p class="text-gray-500 text-sm">Working Hours</p>
+                            <p class="text-2xl font-semibold" id="workingHours">--:--</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Attendance Calendar -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-medium">Attendance Calendar</h3>
+                        <div class="flex gap-2">
+                            <button class="border rounded px-3 py-1 text-sm">&lt; Prev Month</button>
+                            <button class="bg-blue-100 text-blue-700 rounded px-3 py-1 text-sm font-medium">May 2023</button>
+                            <button class="border rounded px-3 py-1 text-sm">Next Month &gt;</button>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-7 gap-1">
+                            <div class="text-center p-2 text-gray-500 text-sm font-medium">Sun</div>
+                            <div class="text-center p-2 text-gray-500 text-sm font-medium">Mon</div>
+                            <div class="text-center p-2 text-gray-500 text-sm font-medium">Tue</div>
+                            <div class="text-center p-2 text-gray-500 text-sm font-medium">Wed</div>
+                            <div class="text-center p-2 text-gray-500 text-sm font-medium">Thu</div>
+                            <div class="text-center p-2 text-gray-500 text-sm font-medium">Fri</div>
+                            <div class="text-center p-2 text-gray-500 text-sm font-medium">Sat</div>
+                            
+                            <!-- Calendar days - Row 1 -->
+                            <div class="border rounded text-center p-2 text-gray-400">30</div>
+                            <div class="border rounded text-center p-2">1</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">2</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">3</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">4</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">5</div>
+                            <div class="border rounded text-center p-2 text-gray-400">6</div>
+                            
+                            <!-- Calendar days - Row 2 -->
+                            <div class="border rounded text-center p-2 text-gray-400">7</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">8</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">9</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">10</div>
+                            <div class="border rounded text-center p-2 bg-red-100 text-red-800">11</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">12</div>
+                            <div class="border rounded text-center p-2 text-gray-400">13</div>
+                            
+                            <!-- Calendar days - Row 3 -->
+                            <div class="border rounded text-center p-2 text-gray-400">14</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">15</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">16</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">17</div>
+                            <div class="border rounded text-center p-2 bg-orange-100 text-orange-800">18</div>
+                            <div class="border rounded text-center p-2 bg-orange-100 text-orange-800">19</div>
+                            <div class="border rounded text-center p-2 text-gray-400">20</div>
+                            
+                            <!-- Calendar days - Row 4 -->
+                            <div class="border rounded text-center p-2 text-gray-400">21</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">22</div>
+                            <div class="border rounded text-center p-2 bg-green-100 text-green-800">23</div>
+                            <div class="border rounded text-center p-2">24</div>
+                            <div class="border rounded text-center p-2">25</div>
+                            <div class="border rounded text-center p-2">26</div>
+                            <div class="border rounded text-center p-2 text-gray-400">27</div>
+                            
+                            <!-- Calendar days - Row 5 -->
+                            <div class="border rounded text-center p-2 text-gray-400">28</div>
+                            <div class="border rounded text-center p-2">29</div>
+                            <div class="border rounded text-center p-2">30</div>
+                            <div class="border rounded text-center p-2">31</div>
+                            <div class="border rounded text-center p-2 text-gray-400">1</div>
+                            <div class="border rounded text-center p-2 text-gray-400">2</div>
+                            <div class="border rounded text-center p-2 text-gray-400">3</div>
+                        </div>
+                        
+                        <div class="flex gap-4 mt-4 justify-center">
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 bg-green-100 rounded"></div>
+                                <span class="text-xs text-gray-600">Present</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 bg-red-100 rounded"></div>
+                                <span class="text-xs text-gray-600">Absent</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 bg-orange-100 rounded"></div>
+                                <span class="text-xs text-gray-600">Half Day</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 bg-blue-100 rounded"></div>
+                                <span class="text-xs text-gray-600">On Leave</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 border rounded"></div>
+                                <span class="text-xs text-gray-600">Holiday</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Attendance Log -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-medium">Attendance Log</h3>
+                        <div class="flex gap-2">
+                            <input type="date" class="rounded-md border-gray-300 text-sm">
+                            <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                <i class="bi bi-search mr-1"></i> Filter
+                            </button>
+                            <button class="border px-3 py-1 rounded text-sm" title="Export as CSV">
+                                <i class="bi bi-download mr-1"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Working Hours</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">23 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">09:05 AM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">06:12 PM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">09:07</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">22 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">08:55 AM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">06:00 PM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">09:05</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">19 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">09:30 AM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">02:00 PM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">04:30</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">Half Day</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">18 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">09:15 AM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">06:20 PM</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">09:05</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">17 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">--:--</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">--:--</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">--:--</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">On Leave</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payroll Section -->
+            <div id="payrollContent" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Payroll Management</h2>
+                    <button onclick="showModal('payslip')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                        <i class="bi bi-file-earmark-text mr-2"></i> Generate Payslip
+                    </button>
+                </div>
+
+                <!-- Salary Summary -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 bg-blue-50 border-b border-blue-100">
+                        <h3 class="font-medium">Your Salary Information</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="border rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500">Basic Salary</p>
+                                <p class="text-2xl font-bold text-blue-600">$4,500</p>
+                                <p class="text-xs text-gray-500 mt-2">Monthly</p>
+                            </div>
+                            <div class="border rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500">Net Salary (Apr 2023)</p>
+                                <p class="text-2xl font-bold text-green-600">$5,280</p>
+                                <p class="text-xs text-gray-500 mt-2">After bonuses & deductions</p>
+                            </div>
+                            <div class="border rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500">YTD Earnings</p>
+                                <p class="text-2xl font-bold text-purple-600">$21,120</p>
+                                <p class="text-xs text-gray-500 mt-2">Jan - Apr 2023</p>
+                            </div>
+                        </div>
+
+                        <hr class="my-6">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-medium mb-3">Earnings</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Basic Salary</span>
+                                        <span class="text-sm font-medium">$4,500.00</span>
+                                    </div>
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">House Rent Allowance</span>
+                                        <span class="text-sm font-medium">$450.00</span>
+                                    </div>
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Transportation Allowance</span>
+                                        <span class="text-sm font-medium">$300.00</span>
+                                    </div>
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Medical Allowance</span>
+                                        <span class="text-sm font-medium">$250.00</span>
+                                    </div>
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Overtime (5 hrs)</span>
+                                        <span class="text-sm font-medium">$180.00</span>
+                                    </div>
+                                    <div class="flex justify-between text-green-600 font-medium">
+                                        <span>Total Earnings</span>
+                                        <span>$5,680.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-medium mb-3">Deductions</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Income Tax</span>
+                                        <span class="text-sm font-medium">$225.00</span>
+                                    </div>
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Provident Fund</span>
+                                        <span class="text-sm font-medium">$90.00</span>
+                                    </div>
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Health Insurance</span>
+                                        <span class="text-sm font-medium">$75.00</span>
+                                    </div>
+                                    <div class="flex justify-between border-b pb-2">
+                                        <span class="text-sm">Leaves (1 day)</span>
+                                        <span class="text-sm font-medium">$10.00</span>
+                                    </div>
+                                    <div class="flex justify-between text-red-600 font-medium">
+                                        <span>Total Deductions</span>
+                                        <span>$400.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payslip History -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 border-b flex justify-between">
+                        <h3 class="font-medium">Payslip History</h3>
+                        <div>
+                            <select id="payslipYear" class="text-sm rounded-md border-gray-300">
+                                <option value="2023">2023</option>
+                                <option value="2022">2022</option>
+                                <option value="2021">2021</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payslip #</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">April 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">PS-202304-001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$5,280</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">01 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Paid</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="downloadPayslip('April 2023')">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="text-gray-600 hover:text-gray-900" onclick="viewPayslip('April 2023')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">March 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">PS-202303-001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$5,320</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">01 Apr, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Paid</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="downloadPayslip('March 2023')">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="text-gray-600 hover:text-gray-900" onclick="viewPayslip('March 2023')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">February 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">PS-202302-001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$5,280</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">01 Mar, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Paid</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="downloadPayslip('February 2023')">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="text-gray-600 hover:text-gray-900" onclick="viewPayslip('February 2023')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">January 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">PS-202301-001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$5,240</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">01 Feb, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Paid</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="downloadPayslip('January 2023')">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="text-gray-600 hover:text-gray-900" onclick="viewPayslip('January 2023')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Section -->
+            <div id="performanceContent" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Performance Management</h2>
+                    <a href="#reviewForm" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                        <i class="bi bi-star mr-2"></i> Start Self Review
+                    </a>
+                </div>
+                
+                <!-- Performance Summary -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 bg-blue-50 border-b border-blue-100">
+                        <h3 class="font-medium">Your Performance Summary</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div class="border rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500">Current Quarter Rating</p>
+                                <div class="flex items-center justify-center my-2">
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star text-yellow-500 text-xl mx-0.5"></i>
+                                </div>
+                                <p class="text-lg font-bold text-blue-600">4.0 / 5.0</p>
+                                <p class="text-xs text-gray-500 mt-2">Q1 2023</p>
+                            </div>
+                            <div class="border rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500">Average Rating</p>
+                                <div class="flex items-center justify-center my-2">
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star-fill text-yellow-500 text-xl mx-0.5"></i>
+                                    <i class="bi bi-star-half text-yellow-500 text-xl mx-0.5"></i>
+                                </div>
+                                <p class="text-lg font-bold text-green-600">4.3 / 5.0</p>
+                                <p class="text-xs text-gray-500 mt-2">Last 4 quarters</p>
+                            </div>
+                            <div class="border rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500">Goals Completion</p>
+                                <div class="my-2 relative h-6 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="absolute h-full bg-blue-500 rounded-full" style="width: 85%;"></div>
+                                    <div class="absolute w-full h-full flex items-center justify-center text-xs text-white font-medium">85%</div>
+                                </div>
+                                <p class="text-lg font-bold text-purple-600">17 / 20 Goals</p>
+                                <p class="text-xs text-gray-500 mt-2">Last 12 months</p>
+                            </div>
+                        </div>
+                        
+                        <h4 class="font-medium mb-3">Performance Trend</h4>
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Goals -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 border-b flex justify-between">
+                        <h3 class="font-medium">Current Quarter Goals</h3>
+                        <button class="text-blue-600 text-sm flex items-center gap-1">
+                            <i class="bi bi-plus-circle"></i> Add Goal
+                        </button>
+                    </div>
+                    <div class="p-4 divide-y">
+                        <div class="py-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <h4 class="font-medium">Complete Project X Implementation</h4>
+                                    <p class="text-sm text-gray-500">Deadline: May 30, 2023</p>
+                                </div>
+                                <div>
+                                    <span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">In Progress</span>
+                                </div>
+                            </div>
+                            <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="absolute h-full bg-yellow-500 rounded-full" style="width: 65%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>Progress: 65%</span>
+                                <span>Weight: 30%</span>
+                            </div>
+                        </div>
+                        <div class="py-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <h4 class="font-medium">Improve System Reliability to 99.9%</h4>
+                                    <p class="text-sm text-gray-500">Deadline: June 15, 2023</p>
+                                </div>
+                                <div>
+                                    <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">Completed</span>
+                                </div>
+                            </div>
+                            <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="absolute h-full bg-green-500 rounded-full" style="width: 100%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>Progress: 100%</span>
+                                <span>Weight: 25%</span>
+                            </div>
+                        </div>
+                        <div class="py-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <h4 class="font-medium">Complete Professional Certification</h4>
+                                    <p class="text-sm text-gray-500">Deadline: June 30, 2023</p>
+                                </div>
+                                <div>
+                                    <span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">In Progress</span>
+                                </div>
+                            </div>
+                            <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="absolute h-full bg-yellow-500 rounded-full" style="width: 50%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>Progress: 50%</span>
+                                <span>Weight: 15%</span>
+                            </div>
+                        </div>
+                        <div class="py-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <h4 class="font-medium">Conduct Team Training Sessions</h4>
+                                    <p class="text-sm text-gray-500">Deadline: May 25, 2023</p>
+                                </div>
+                                <div>
+                                    <span class="px-2 py-1 rounded text-xs bg-red-100 text-red-800">Not Started</span>
+                                </div>
+                            </div>
+                            <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="absolute h-full bg-red-500 rounded-full" style="width: 0%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>Progress: 0%</span>
+                                <span>Weight: 10%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Past Reviews -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 border-b">
+                        <h3 class="font-medium">Past Performance Reviews</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Period</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewed By</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">Q1 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <span class="mr-2">4.0</span>
+                                            <div class="flex">
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star text-yellow-500 text-sm"></i>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img class="h-8 w-8 rounded-full mr-3" src="https://ui-avatars.com/api/?name=Emily+Roberts" alt="">
+                                            <div>Emily Roberts</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Apr 15, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-blue-600 hover:text-blue-900">View Details</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">Q4 2022</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <span class="mr-2">4.2</span>
+                                            <div class="flex">
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-half text-yellow-500 text-sm"></i>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img class="h-8 w-8 rounded-full mr-3" src="https://ui-avatars.com/api/?name=Emily+Roberts" alt="">
+                                            <div>Emily Roberts</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Jan 10, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-blue-600 hover:text-blue-900">View Details</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">Q3 2022</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <span class="mr-2">4.5</span>
+                                            <div class="flex">
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-fill text-yellow-500 text-sm"></i>
+                                                <i class="bi bi-star-half text-yellow-500 text-sm"></i>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img class="h-8 w-8 rounded-full mr-3" src="https://ui-avatars.com/api/?name=Emily+Roberts" alt="">
+                                            <div>Emily Roberts</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Oct 12, 2022</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-blue-600 hover:text-blue-900">View Details</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recruitment Section -->
+            <div id="recruitmentContent" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Recruitment Management</h2>
+                    <button onclick="showModal('addJob')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                        <i class="bi bi-briefcase-fill mr-2"></i> Add New Job
+                    </button>
+                </div>
+                
+                <!-- Recruitment Stats -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Open Positions</p>
+                                <h3 class="text-2xl font-bold text-blue-600">8</h3>
+                            </div>
+                            <div class="bg-blue-100 p-3 rounded-full">
+                                <i class="bi bi-briefcase text-xl text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Total Applicants</p>
+                                <h3 class="text-2xl font-bold text-green-600">65</h3>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-full">
+                                <i class="bi bi-people text-xl text-green-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Interviews Scheduled</p>
+                                <h3 class="text-2xl font-bold text-yellow-600">12</h3>
+                            </div>
+                            <div class="bg-yellow-100 p-3 rounded-full">
+                                <i class="bi bi-calendar-check text-xl text-yellow-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Positions Filled</p>
+                                <h3 class="text-2xl font-bold text-purple-600">3</h3>
+                            </div>
+                            <div class="bg-purple-100 p-3 rounded-full">
+                                <i class="bi bi-check-circle text-xl text-purple-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Jobs -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 border-b flex justify-between">
+                        <h3 class="font-medium">Active Job Listings</h3>
+                        <div class="flex gap-2">
+                            <div class="relative">
+                                <input type="text" placeholder="Search jobs..." class="pl-8 pr-4 py-1 rounded-md border-gray-300 text-sm">
+                                <i class="bi bi-search absolute left-3 top-2 text-gray-400 text-sm"></i>
+                            </div>
+                            <select class="text-sm rounded-md border-gray-300">
+                                <option value="">All Departments</option>
+                                <option value="IT">IT</option>
+                                <option value="HR">HR</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Finance">Finance</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posted Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicants</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">Senior Software Developer</div>
+                                            <div class="text-sm text-gray-500">Full-time</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">IT</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">10 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">14 Applicants</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="showModal('viewJob', 'JOB001')" class="text-blue-600 hover:text-blue-900 mr-3">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-900">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">UI/UX Designer</div>
+                                            <div class="text-sm text-gray-500">Full-time</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Design</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">5 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">9 Applicants</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="showModal('viewJob', 'JOB002')" class="text-blue-600 hover:text-blue-900 mr-3">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-900">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">Marketing Specialist</div>
+                                            <div class="text-sm text-gray-500">Contract</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Marketing</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">1 May, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">21 Applicants</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Interviewing</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="showModal('viewJob', 'JOB003')" class="text-blue-600 hover:text-blue-900 mr-3">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-900">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">HR Coordinator</div>
+                                            <div class="text-sm text-gray-500">Full-time</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">HR</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">20 Apr, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">15 Applicants</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">Offer Sent</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="showModal('viewJob', 'JOB004')" class="text-blue-600 hover:text-blue-900 mr-3">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-900">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Recent Applications -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-4 border-b">
+                        <h3 class="font-medium">Recent Applications</h3>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <img src="https://ui-avatars.com/api/?name=David+Wilson" class="h-10 w-10 rounded-full mr-3">
+                                        <div>
+                                            <p class="font-medium">David Wilson</p>
+                                            <p class="text-sm text-gray-500">Applied for: Senior Software Developer</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 text-sm">
+                                        <p class="text-gray-600">6 years of experience in full-stack development with expertise in React, Node.js, and AWS.</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">New</span>
+                                    <p class="text-xs text-gray-500 mt-1">Applied on: May 12, 2023</p>
+                                    <div class="mt-2">
+                                        <button class="text-sm text-white bg-green-600 px-2 py-1 rounded mr-1">Shortlist</button>
+                                        <button class="text-sm text-white bg-red-600 px-2 py-1 rounded">Reject</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <img src="https://ui-avatars.com/api/?name=Jessica+Lee" class="h-10 w-10 rounded-full mr-3">
+                                        <div>
+                                            <p class="font-medium">Jessica Lee</p>
+                                            <p class="text-sm text-gray-500">Applied for: UI/UX Designer</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 text-sm">
+                                        <p class="text-gray-600">4 years of experience in user interface design, proficient in Figma and Adobe Creative Suite.</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Screening</span>
+                                    <p class="text-xs text-gray-500 mt-1">Applied on: May 8, 2023</p>
+                                    <div class="mt-2">
+                                        <button class="text-sm text-white bg-blue-600 px-2 py-1 rounded mr-1">Schedule Interview</button>
+                                        <button class="text-sm text-white bg-red-600 px-2 py-1 rounded">Reject</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <img src="https://ui-avatars.com/api/?name=Robert+Kim" class="h-10 w-10 rounded-full mr-3">
+                                        <div>
+                                            <p class="font-medium">Robert Kim</p>
+                                            <p class="text-sm text-gray-500">Applied for: Marketing Specialist</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 text-sm">
+                                        <p class="text-gray-600">3 years of experience in digital marketing with focus on SEO and content marketing strategies.</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">Interview Scheduled</span>
+                                    <p class="text-xs text-gray-500 mt-1">Applied on: May 5, 2023</p>
+                                    <div class="mt-2">
+                                        <p class="text-xs text-gray-600">Interview on: May 18, 2023</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Employee Modal -->
+    <div id="addEmployeeModal" class="modal">
+        <div class="bg-white w-full max-w-lg mx-auto mt-20 rounded-lg shadow-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Add New Employee</h3>
+                    <button onclick="hideModal('addEmployee')" class="text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <form id="employeeForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Full Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="empName" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Employee ID <span class="text-red-500">*</span></label>
+                            <input type="text" id="empId" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span></label>
+                            <input type="email" id="empEmail" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Contact Number</label>
+                            <input type="text" id="empContact">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Department <span class="text-red-500">*</span></label>
+                            <select id="empDepartment" required>
+                                <option value="">Select Department</option>
+                                <option value="IT">IT</option>
+                                <option value="HR">HR</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Design">Design</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Role <span class="text-red-500">*</span></label>
+                            <input type="text" id="empRole" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Date of Joining <span class="text-red-500">*</span></label>
+                            <input type="date" id="empJoinDate" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Status <span class="text-red-500">*</span></label>
+                            <select id="empStatus" required>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideModal('addEmployee')" class="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" id="empSubmitBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Add Employee
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Leave Modal -->
+    <div id="addLeaveModal" class="modal">
+        <div class="bg-white w-full max-w-md mx-auto mt-20 rounded-lg shadow-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Apply for Leave</h3>
+                    <button onclick="hideModal('addLeave')" class="text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <form id="leaveForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Leave Type <span class="text-red-500">*</span></label>
+                        <select id="leaveType" required>
+                            <option value="">Select Leave Type</option>
+                            <option value="Casual">Casual Leave</option>
+                            <option value="Sick">Sick Leave</option>
+                            <option value="Paid">Paid Leave</option>
+                            <option value="Unpaid">Unpaid Leave</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">From Date <span class="text-red-500">*</span></label>
+                            <input type="date" id="leaveFrom" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">To Date <span class="text-red-500">*</span></label>
+                            <input type="date" id="leaveTo" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Reason <span class="text-red-500">*</span></label>
+                        <textarea id="leaveReason" rows="3" required></textarea>
+                    </div>
+                    <div>
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input id="leaveHalfday" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="leaveHalfday" class="font-medium text-gray-700">Half Day Leave</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideModal('addLeave')" class="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" id="leaveSubmitBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Modal -->
+    <div id="attendanceModal" class="modal">
+        <div class="bg-white w-full max-w-md mx-auto mt-20 rounded-lg shadow-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Mark Attendance</h3>
+                    <button onclick="hideModal('attendance')" class="text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div class="text-center border rounded-lg p-4 bg-blue-50">
+                        <p class="text-sm text-gray-500">Current Date & Time</p>
+                        <p id="attendanceDateTime" class="text-xl font-semibold mt-1">May 24, 2023 - 09:30 AM</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <button id="markCheckInBtn" class="flex flex-col items-center justify-center p-4 rounded-lg border border-green-300 bg-green-50 hover:bg-green-100">
+                            <i class="bi bi-box-arrow-in-right text-3xl text-green-600 mb-2"></i>
+                            <span class="text-green-700 font-medium">Check In</span>
+                        </button>
+                        <button id="markCheckOutBtn" class="flex flex-col items-center justify-center p-4 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100">
+                            <i class="bi bi-box-arrow-right text-3xl text-red-600 mb-2"></i>
+                            <span class="text-red-700 font-medium">Check Out</span>
+                        </button>
+                    </div>
+                    
+                    <div>
+                        <div class="flex items-start mb-4">
+                            <div class="flex items-center h-5">
+                                <input id="locationTracking" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="locationTracking" class="font-medium text-gray-700">Enable Location Tracking</label>
+                                <p class="text-gray-500">Your current location will be recorded with attendance</p>
+                            </div>
+                        </div>
+                        
+                        <div id="locationInfo" class="text-sm text-gray-600 mt-2 hidden">
+                            <p><i class="bi bi-geo-alt mr-1"></i> <span id="currentLocation">Detecting your location...</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <p class="text-sm text-blue-600"><i class="bi bi-info-circle mr-1"></i> Your attendance will be recorded in the system immediately.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payslip Modal -->
+    <div id="payslipModal" class="modal">
+        <div class="bg-white w-full max-w-lg mx-auto mt-10 rounded-lg shadow-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Generate Payslip</h3>
+                    <button onclick="hideModal('payslip')" class="text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <form id="payslipForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Select Employee</label>
+                            <select id="payslipEmployee">
+                                <option value="current">John Doe (You)</option>
+                                <option value="EMP001">EMP001 - John Doe</option>
+                                <option value="EMP002">EMP002 - Sarah Johnson</option>
+                                <option value="EMP003">EMP003 - Mark Smith</option>
+                                <option value="EMP004">EMP004 - Emily Roberts</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Month & Year</label>
+                            <input type="month" id="payslipMonth" value="2023-05">
+                        </div>
+                    </div>
+                    
+                    <div class="border rounded-lg p-4 bg-gray-50">
+                        <h4 class="text-sm font-medium mb-2">Salary Components</h4>
+                        
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500">Basic Salary</label>
+                                    <input type="number" id="basicSalary" value="4500" class="text-right">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">HRA</label>
+                                    <input type="number" id="hra" value="450" class="text-right">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500">Transport Allowance</label>
+                                    <input type="number" id="transportAllowance" value="300" class="text-right">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Medical Allowance</label>
+                                    <input type="number" id="medicalAllowance" value="250" class="text-right">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500">Special Allowance</label>
+                                    <input type="number" id="specialAllowance" value="0" class="text-right">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Bonus</label>
+                                    <input type="number" id="bonus" value="0" class="text-right">
+                                </div>
+                            </div>
+                            
+                            <hr class="my-2">
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500">Income Tax</label>
+                                    <input type="number" id="incomeTax" value="225" class="text-right">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Provident Fund</label>
+                                    <input type="number" id="providentFund" value="90" class="text-right">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500">Professional Tax</label>
+                                    <input type="number" id="professionalTax" value="10" class="text-right">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Health Insurance</label>
+                                    <input type="number" id="healthInsurance" value="75" class="text-right">
+                                </div>
+                            </div>
+                            
+                            <hr class="my-2">
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500">Total Earnings</label>
+                                    <input type="number" id="totalEarnings" value="5500" class="text-right bg-green-50 font-medium" readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Total Deductions</label>
+                                    <input type="number" id="totalDeductions" value="400" class="text-right bg-red-50 font-medium" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="border-t pt-2">
+                                <label class="block text-sm font-medium text-gray-700">Net Salary</label>
+                                <input type="number" id="netSalary" value="5100" class="text-right bg-blue-50 font-bold" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="calculateSalary()" class="px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50">
+                            <i class="bi bi-calculator mr-1"></i> Calculate
+                        </button>
+                        <button type="button" onclick="previewPayslip()" class="px-4 py-2 border border-green-600 text-green-600 rounded-md hover:bg-green-50">
+                            <i class="bi bi-eye mr-1"></i> Preview
+                        </button>
+                        <button type="submit" id="payslipSubmitBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            <i class="bi bi-file-earmark-check mr-1"></i> Generate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Job Modal -->
+    <div id="addJobModal" class="modal">
+        <div class="bg-white w-full max-w-lg mx-auto mt-10 rounded-lg shadow-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Add New Job</h3>
+                    <button onclick="hideModal('addJob')" class="text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <form id="jobForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Job Title <span class="text-red-500">*</span></label>
+                        <input type="text" id="jobTitle" placeholder="e.g. Senior Software Developer" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Department <span class="text-red-500">*</span></label>
+                            <select id="jobDepartment" required>
+                                <option value="">Select Department</option>
+                                <option value="IT">IT</option>
+                                <option value="HR">HR</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Design">Design</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Employment Type <span class="text-red-500">*</span></label>
+                            <select id="jobType" required>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Temporary">Temporary</option>
+                                <option value="Internship">Internship</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Experience (Years)</label>
+                            <input type="number" id="jobExperience" min="0" placeholder="e.g. 3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Salary Range</label>
+                            <input type="text" id="jobSalary" placeholder="e.g. $60,000 - $80,000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Location <span class="text-red-500">*</span></label>
+                        <input type="text" id="jobLocation" placeholder="e.g. New York, NY (Remote/Hybrid/Onsite)" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Job Description <span class="text-red-500">*</span></label>
+                        <textarea id="jobDescription" rows="4" placeholder="Describe the job responsibilities in detail..." required></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Requirements <span class="text-red-500">*</span></label>
+                        <textarea id="jobRequirements" rows="4" placeholder="List skills, qualifications, and experience required..." required></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideModal('addJob')" class="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" id="jobSubmitBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Post Job
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Job Modal -->
+    <div id="viewJobModal" class="modal">
+        <div class="bg-white w-full max-w-2xl mx-auto mt-10 rounded-lg shadow-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold" id="viewJobTitle">Senior Software Developer</h3>
+                    <button onclick="hideModal('viewJob')" class="text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-6">
+                    <div class="flex flex-wrap gap-3 mb-4">
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex items-center">
+                            <i class="bi bi-briefcase mr-1"></i> Full-time
+                        </span>
+                        <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full flex items-center">
+                            <i class="bi bi-building mr-1"></i> IT Department
+                        </span>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center">
+                            <i class="bi bi-geo-alt mr-1"></i> New York, NY (Hybrid)
+                        </span>
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full flex items-center">
+                            <i class="bi bi-cash mr-1"></i> $90,000 - $120,000
+                        </span>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-md font-medium mb-2">Job Description</h4>
+                        <p class="text-sm text-gray-600">
+                            We are looking for a Senior Software Developer to join our growing engineering team. The ideal candidate will have strong experience in full-stack development, particularly with React.js and Node.js. You will be responsible for designing, coding, and modifying applications according to specifications, as well as mentoring junior developers and contributing to our technical roadmap.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-md font-medium mb-2">Requirements</h4>
+                        <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                            <li>5+ years of experience in software development</li>
+                            <li>Strong proficiency in JavaScript, including DOM manipulation and the JavaScript object model</li>
+                            <li>Experience with React.js and its core principles</li>
+                            <li>Experience with popular React.js workflows (Redux, React Router)</li>
+                            <li>Experience with Node.js and Express framework</li>
+                            <li>Familiarity with RESTful APIs</li>
+                            <li>Understanding of code versioning tools, such as Git</li>
+                            <li>Good understanding of serverless architecture and AWS services</li>
+                            <li>BS/MS degree in Computer Science or related field, or equivalent experience</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-sm text-gray-500">Posted on: May 10, 2023</p>
+                                <p class="text-sm text-gray-500">Applications: 14</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 border border-blue-600 text-blue-600 rounded hover:bg-blue-50">
+                                    <i class="bi bi-pencil mr-1"></i> Edit
+                                </button>
+                                <button class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    <i class="bi bi-people mr-1"></i> View Applicants
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Authentication state (simulating a real database)
+        const auth = {
+            isLoggedIn: false,
+            currentUser: {
+                name: "John Doe",
+                email: "john.doe@example.com",
+                role: "admin",
+                id: "EMP001"
+            },
+            users: [
+                {
+                    name: "John Doe",
+                    email: "john@example.com",
+                    password: "password123",
+                    role: "admin",
+                    id: "EMP001"
+                },
+                {
+                    name: "Sarah Johnson",
+                    email: "sarah@example.com",
+                    password: "password123",
+                    role: "hr",
+                    id: "EMP002"
+                },
+                {
+                    name: "Mike Smith",
+                    email: "mike@example.com",
+                    password: "password123",
+                    role: "employee",
+                    id: "EMP003"
+                }
+            ],
+            login: function(email, password) {
+                const user = this.users.find(u => u.email === email && u.password === password);
+                if (user) {
+                    this.isLoggedIn = true;
+                    this.currentUser = user;
+                    return true;
+                }
+                return false;
+            },
+            register: function(name, email, password, role) {
+                // Check if email already exists
+                if (this.users.some(u => u.email === email)) {
+                    return false;
+                }
+                
+                const newUser = {
+                    name: name,
+                    email: email,
+                    password: password,
+                    role: role,
+                    id: `EMP${this.users.length + 1}`.padStart(6, '0')
+                };
+                this.users.push(newUser);
+                return true;
+            },
+            logout: function() {
+                this.isLoggedIn = false;
+            }
+        };
+
+        // Mock Database
+        const db = {
+            employees: [
+                {
+                    id: "EMP001",
+                    name: "John Doe",
+                    email: "john.doe@example.com",
+                    contact: "+1 (555) 123-4567",
+                    department: "IT",
+                    role: "Software Developer",
+                    joinDate: "2021-05-01",
+                    status: "Active"
+                },
+                {
+                    id: "EMP002", 
+                    name: "Sarah Johnson",
+                    email: "sarah.j@example.com",
+                    contact: "+1 (555) 234-5678",
+                    department: "UI/UX",
+                    role: "UI Designer",
+                    joinDate: "2022-06-15",
+                    status: "Active"
+                },
+                {
+                    id: "EMP003",
+                    name: "Mark Smith",
+                    email: "mark.s@example.com",
+                    contact: "+1 (555) 345-6789",
+                    department: "Finance",
+                    role: "Financial Analyst",
+                    joinDate: "2020-02-03",
+                    status: "Inactive"
+                },
+                {
+                    id: "EMP004",
+                    name: "Emily Roberts",
+                    email: "emily.r@example.com",
+                    contact: "+1 (555) 456-7890",
+                    department: "HR",
+                    role: "HR Manager",
+                    joinDate: "2021-09-22",
+                    status: "Active"
+                },
+                {
+                    id: "EMP005",
+                    name: "Michael Brown",
+                    email: "michael.b@example.com",
+                    contact: "+1 (555) 567-8901",
+                    department: "Marketing",
+                    role: "Marketing Specialist",
+                    joinDate: "2021-03-14",
+                    status: "Active"
+                }
+            ],
+            leaves: [
+                {
+                    id: "LV001",
+                    employeeId: "EMP001",
+                    type: "Casual",
+                    fromDate: "2023-05-15",
+                    toDate: "2023-05-17",
+                    days: 3,
+                    reason: "Family function",
+                    status: "Pending"
+                },
+                {
+                    id: "LV002",
+                    employeeId: "EMP001",
+                    type: "Sick",
+                    fromDate: "2023-04-02",
+                    toDate: "2023-04-04",
+                    days: 3,
+                    reason: "Fever and cold",
+                    status: "Approved"
+                },
+                {
+                    id: "LV003",
+                    employeeId: "EMP001",
+                    type: "Paid",
+                    fromDate: "2023-03-10",
+                    toDate: "2023-03-15",
+                    days: 6,
+                    reason: "Vacation",
+                    status: "Approved"
+                },
+                {
+                    id: "LV004",
+                    employeeId: "EMP001",
+                    type: "Casual",
+                    fromDate: "2023-02-22",
+                    toDate: "2023-02-22",
+                    days: 1,
+                    reason: "Personal work",
+                    status: "Rejected"
+                }
+            ],
+            attendance: [
+                {
+                    id: "ATT001",
+                    employeeId: "EMP001",
+                    date: "2023-05-23",
+                    checkIn: "09:05",
+                    checkOut: "18:12",
+                    workingHours: "09:07",
+                    status: "Present"
+                },
+                {
+                    id: "ATT002",
+                    employeeId: "EMP001",
+                    date: "2023-05-22",
+                    checkIn: "08:55",
+                    checkOut: "18:00",
+                    workingHours: "09:05",
+                    status: "Present"
+                },
+                {
+                    id: "ATT003",
+                    employeeId: "EMP001",
+                    date: "2023-05-19",
+                    checkIn: "09:30",
+                    checkOut: "14:00",
+                    workingHours: "04:30",
+                    status: "Half Day"
+                },
+                {
+                    id: "ATT004",
+                    employeeId: "EMP001",
+                    date: "2023-05-18",
+                    checkIn: "09:15",
+                    checkOut: "18:20",
+                    workingHours: "09:05",
+                    status: "Present"
+                },
+                {
+                    id: "ATT005",
+                    employeeId: "EMP001",
+                    date: "2023-05-17",
+                    checkIn: null,
+                    checkOut: null,
+                    workingHours: null,
+                    status: "On Leave"
+                }
+            ],
+            jobs: [
+                {
+                    id: "JOB001",
+                    title: "Senior Software Developer",
+                    department: "IT",
+                    type: "Full-time",
+                    experience: 5,
+                    salary: "$90,000 - $120,000",
+                    location: "New York, NY (Hybrid)",
+                    description: "We are looking for a Senior Software Developer to join our growing engineering team. The ideal candidate will have strong experience in full-stack development, particularly with React.js and Node.js. You will be responsible for designing, coding, and modifying applications according to specifications, as well as mentoring junior developers and contributing to our technical roadmap.",
+                    requirements: "5+ years of experience in software development\nStrong proficiency in JavaScript, including DOM manipulation and the JavaScript object model\nExperience with React.js and its core principles\nExperience with popular React.js workflows (Redux, React Router)\nExperience with Node.js and Express framework\nFamiliarity with RESTful APIs\nUnderstanding of code versioning tools, such as Git\nGood understanding of serverless architecture and AWS services\nBS/MS degree in Computer Science or related field, or equivalent experience",
+                    postedDate: "2023-05-10",
+                    status: "Active",
+                    applicants: 14
+                },
+                {
+                    id: "JOB002",
+                    title: "UI/UX Designer",
+                    department: "Design",
+                    type: "Full-time",
+                    experience: 3,
+                    salary: "$70,000 - $90,000",
+                    location: "San Francisco, CA (Remote)",
+                    description: "We're looking for a talented UI/UX Designer to create amazing user experiences. You will work with product managers and engineers to design intuitive interfaces that make complex tasks feel simple and seamless.",
+                    requirements: "3+ years of experience in UI/UX design\nProficiency in design tools such as Figma, Sketch, or Adobe XD\nPortfolio demonstrating a strong visual eye and problem-solving skills\nExperience designing for both web and mobile platforms\nUnderstanding of accessibility standards and usability principles\nBasic understanding of HTML/CSS\nAbility to work with cross-functional teams\nStrong communication and presentation skills",
+                    postedDate: "2023-05-05",
+                    status: "Active",
+                    applicants: 9
+                },
+                {
+                    id: "JOB003",
+                    title: "Marketing Specialist",
+                    department: "Marketing",
+                    type: "Contract",
+                    experience: 2,
+                    salary: "$60,000 - $75,000",
+                    location: "Chicago, IL (Hybrid)",
+                    description: "We are seeking a dynamic Marketing Specialist to develop and implement marketing strategies across various channels. You will help build brand awareness, generate leads, and support our go-to-market strategy.",
+                    requirements: "2+ years of experience in digital marketing\nExperience with SEO, SEM, and social media marketing\nFamiliarity with marketing automation tools (HubSpot, Marketo, etc.)\nExcellent content creation and copywriting skills\nAnalytical mindset with experience in campaign performance tracking\nAbility to work in a fast-paced environment\nBachelor's degree in Marketing, Communications, or related field",
+                    postedDate: "2023-05-01",
+                    status: "Interviewing",
+                    applicants: 21
+                },
+                {
+                    id: "JOB004",
+                    title: "HR Coordinator",
+                    department: "HR",
+                    type: "Full-time",
+                    experience: 1,
+                    salary: "$50,000 - $60,000",
+                    location: "Boston, MA (Onsite)",
+                    description: "We're looking for an HR Coordinator to support our HR team in day-to-day operations. You will assist with recruitment, onboarding, employee relations, and HR administrative tasks.",
+                    requirements: "1+ years of experience in HR or related field\nKnowledge of HR policies and procedures\nExperience with HRIS systems\nStrong organizational and multitasking skills\nExcellent interpersonal and communication abilities\nDiscretion in handling confidential information\nBachelor's degree in Human Resources, Business Administration, or related field is preferred",
+                    postedDate: "2023-04-20",
+                    status: "Offer Sent",
+                    applicants: 15
+                }
+            ],
+            payslips: [
+                {
+                    id: "PS-202304-001",
+                    employeeId: "EMP001",
+                    month: "April",
+                    year: "2023",
+                    basicSalary: 4500,
+                    hra: 450,
+                    transportAllowance: 300,
+                    medicalAllowance: 250,
+                    otherAllowance: 0,
+                    bonus: 180,
+                    incomeTax: 225,
+                    providentFund: 90,
+                    professionalTax: 10,
+                    healthInsurance: 75,
+                    totalEarnings: 5680,
+                    totalDeductions: 400,
+                    netSalary: 5280,
+                    paymentDate: "2023-05-01",
+                    status: "Paid"
+                },
+                {
+                    id: "PS-202303-001",
+                    employeeId: "EMP001",
+                    month: "March",
+                    year: "2023",
+                    basicSalary: 4500,
+                    hra: 450,
+                    transportAllowance: 300,
+                    medicalAllowance: 250,
+                    otherAllowance: 0,
+                    bonus: 220,
+                    incomeTax: 225,
+                    providentFund: 90,
+                    professionalTax: 10,
+                    healthInsurance: 75, 
+                    totalEarnings: 5720,
+                    totalDeductions: 400,
+                    netSalary: 5320,
+                    paymentDate: "2023-04-01",
+                    status: "Paid"
+                },
+                {
+                    id: "PS-202302-001",
+                    employeeId: "EMP001",
+                    month: "February",
+                    year: "2023",
+                    basicSalary: 4500,
+                    hra: 450,
+                    transportAllowance: 300,
+                    medicalAllowance: 250,
+                    otherAllowance: 0,
+                    bonus: 180,
+                    incomeTax: 225,
+                    providentFund: 90,
+                    professionalTax: 10,
+                    healthInsurance: 75,
+                    totalEarnings: 5680,
+                    totalDeductions: 400,
+                    netSalary: 5280,
+                    paymentDate: "2023-03-01",
+                    status: "Paid"
+                },
+                {
+                    id: "PS-202301-001",
+                    employeeId: "EMP001",
+                    month: "January",
+                    year: "2023",
+                    basicSalary: 4500,
+                    hra: 450,
+                    transportAllowance: 300,
+                    medicalAllowance: 250,
+                    otherAllowance: 0,
+                    bonus: 140, 
+                    incomeTax: 225,
+                    providentFund: 90,
+                    professionalTax: 10,
+                    healthInsurance: 75,
+                    totalEarnings: 5640,
+                    totalDeductions: 400,
+                    netSalary: 5240,
+                    paymentDate: "2023-02-01",
+                    status: "Paid"
+                }
+            ]
+        };
+
+        // UI Functions
+        document.addEventListener("DOMContentLoaded", function() {
+            // Login/Signup Tab Switching
+            document.getElementById('loginTab').addEventListener('click', function() {
+                document.getElementById('loginTab').classList.add('bg-blue-600', 'text-white');
+                document.getElementById('signupTab').classList.remove('bg-blue-600', 'text-white');
+                document.getElementById('loginForm').classList.add('active');
+                document.getElementById('signupForm').classList.remove('active');
+            });
+            
+            document.getElementById('signupTab').addEventListener('click', function() {
+                document.getElementById('signupTab').classList.add('bg-blue-600', 'text-white');
+                document.getElementById('loginTab').classList.remove('bg-blue-600', 'text-white');
+                document.getElementById('signupForm').classList.add('active');
+                document.getElementById('loginForm').classList.remove('active');
+            });
+            
+            // Login Form Submission
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                
+                if (auth.login(email, password) || (email === "demo" && password === "demo")) {
+                    // Simulate successful login
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${auth.currentUser.name.replace(' ', '+')}`;
+                    document.getElementById('userName').textContent = auth.currentUser.name;
+                    document.getElementById('roleIndicator').querySelector('span').textContent = auth.currentUser.role.charAt(0).toUpperCase() + auth.currentUser.role.slice(1);
+                    
+                    // Initialize the dashboard
+                    initializeCharts();
+                } else {
+                    alert('Invalid email or password. Try demo/demo for a demo account.');
+                }
+            });
+            
+            // Signup Form Submission
+            document.getElementById('signupForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('signupName').value;
+                const email = document.getElementById('signupEmail').value;
+                const password = document.getElementById('signupPassword').value;
+                const role = document.getElementById('signupRole').value;
+                
+                if (auth.register(name, email, password, role)) {
+                    alert('Account created successfully! You can now log in.');
+                    // Switch to login tab
+                    document.getElementById('loginTab').click();
+                } else {
+                    alert('Email already exists. Please use a different email or log in.');
+                }
+            });
+            
+            // Logout Button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                auth.logout();
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+            });
+            
+            // Mobile Menu Toggle
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+            
+            // Notification Dropdown
+            document.getElementById('notificationBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dropdown = document.getElementById('notificationDropdown');
+                if (dropdown.style.display === 'block') {
+                    dropdown.style.display = 'none';
+                } else {
+                    dropdown.style.display = 'block';
+                }
+            });
+            
+            // Close notification dropdown when clicking elsewhere
+            document.addEventListener('click', function() {
+                document.getElementById('notificationDropdown').style.display = 'none';
+            });
+            
+            // Navigation Handling
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = {
+                "#dashboard": document.getElementById('dashboardContent'),
+                "#employees": document.getElementById('employeesContent'),
+                "#leave": document.getElementById('leaveContent'),
+                "#attendance": document.getElementById('attendanceContent'),
+                "#payroll": document.getElementById('payrollContent'),
+                "#performance": document.getElementById('performanceContent'),
+                "#recruitment": document.getElementById('recruitmentContent')
+            };
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    // Remove active state from all links
+                    navLinks.forEach(l => l.classList.remove('text-blue-600'));
+                    
+                    // Add active state to clicked link
+                    this.classList.add('text-blue-600');
+                    
+                    // Hide all content sections
+                    Object.values(contentSections).forEach(section => {
+                        if (section) section.classList.add('hidden');
+                    });
+                    
+                    // Show the relevant content section
+                    const targetSection = contentSections[this.getAttribute('href')];
+                    if (targetSection) {
+                        targetSection.classList.remove('hidden');
+                    }
+                    
+                    // Close mobile sidebar if open
+                    if (window.innerWidth < 768) {
+                        sidebar.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Check for hash in URL on page load
+            if (window.location.hash && contentSections[window.location.hash]) {
+                const targetLink = document.querySelector(`a[href="${window.location.hash}"]`);
+                if (targetLink) {
+                    targetLink.click();
+                }
+            } else {
+                // Default to dashboard
+                document.querySelector('a[href="#dashboard"]').click();
+            }
+            
+            // Form submissions
+            document.getElementById('employeeForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form data
+                const name = document.getElementById('empName').value;
+                const id = document.getElementById('empId').value;
+                const email = document.getElementById('empEmail').value;
+                const contact = document.getElementById('empContact').value;
+                const department = document.getElementById('empDepartment').value;
+                const role = document.getElementById('empRole').value;
+                const joinDate = document.getElementById('empJoinDate').value;
+                const status = document.getElementById('empStatus').value;
+                
+                // Add to database
+                db.employees.push({
+                    id: id,
+                    name: name,
+                    email: email,
+                    contact: contact,
+                    department: department,
+                    role: role,
+                    joinDate: joinDate,
+                    status: status
+                });
+                
+                // Close modal and notify
+                hideModal('addEmployee');
+                alert('Employee added successfully!');
+            });
+            
+            document.getElementById('leaveForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form data
+                const type = document.getElementById('leaveType').value;
+                const fromDate = document.getElementById('leaveFrom').value;
+                const toDate = document.getElementById('leaveTo').value;
+                const reason = document.getElementById('leaveReason').value;
+                const isHalfDay = document.getElementById('leaveHalfday').checked;
+                
+                // Calculate days
+                const from = new Date(fromDate);
+                const to = new Date(toDate);
+                const diffTime = Math.abs(to - from);
+                let days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                if (isHalfDay) days = 0.5;
+                
+                // Add to database
+                db.leaves.push({
+                    id: `LV${db.leaves.length + 1}`.padStart(5, '0'),
+                    employeeId: auth.currentUser.id,
+                    type: type,
+                    fromDate: fromDate,
+                    toDate: toDate,
+                    days: days,
+                    reason: reason,
+                    status: "Pending"
+                });
+                
+                // Close modal and notify
+                hideModal('addLeave');
+                alert('Leave request submitted successfully!');
+            });
+            
+            document.getElementById('payslipForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Calculate total earnings and deductions
+                calculateSalary();
+                
+                // Get form data
+                const employee = document.getElementById('payslipEmployee').value;
+                const month = document.getElementById('payslipMonth').value;
+                const [year, monthNumber] = month.split('-');
+                const monthName = new Date(month + '-01').toLocaleString('default', { month: 'long' });
+                
+                const basicSalary = parseFloat(document.getElementById('basicSalary').value);
+                const hra = parseFloat(document.getElementById('hra').value);
+                const transportAllowance = parseFloat(document.getElementById('transportAllowance').value);
+                const medicalAllowance = parseFloat(document.getElementById('medicalAllowance').value);
+                const specialAllowance = parseFloat(document.getElementById('specialAllowance').value);
+                const bonus = parseFloat(document.getElementById('bonus').value);
+                
+                const incomeTax = parseFloat(document.getElementById('incomeTax').value);
+                const providentFund = parseFloat(document.getElementById('providentFund').value);
+                const professionalTax = parseFloat(document.getElementById('professionalTax').value);
+                const healthInsurance = parseFloat(document.getElementById('healthInsurance').value);
+                
+                const totalEarnings = parseFloat(document.getElementById('totalEarnings').value);
+                const totalDeductions = parseFloat(document.getElementById('totalDeductions').value);
+                const netSalary = parseFloat(document.getElementById('netSalary').value);
+                
+                // Add to database
+                db.payslips.push({
+                    id: `PS-${year}${monthNumber}-${db.payslips.length + 1}`.padStart(3, '0'),
+                    employeeId: employee === 'current' ? auth.currentUser.id : employee,
+                    month: monthName,
+                    year: year,
+                    basicSalary: basicSalary,
+                    hra: hra,
+                    transportAllowance: transportAllowance,
+                    medicalAllowance: medicalAllowance,
+                    otherAllowance: specialAllowance,
+                    bonus: bonus,
+                    incomeTax: incomeTax,
+                    providentFund: providentFund,
+                    professionalTax: professionalTax,
+                    healthInsurance: healthInsurance,
+                    totalEarnings: totalEarnings,
+                    totalDeductions: totalDeductions,
+                    netSalary: netSalary,
+                    paymentDate: new Date().toISOString().split('T')[0],
+                    status: "Paid"
+                });
+                
+                // Close modal and notify
+                hideModal('payslip');
+                alert('Payslip generated successfully!');
+            });
+            
+            document.getElementById('jobForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form data
+                const title = document.getElementById('jobTitle').value;
+                const department = document.getElementById('jobDepartment').value;
+                const type = document.getElementById('jobType').value;
+                const experience = document.getElementById('jobExperience').value;
+                const salary = document.getElementById('jobSalary').value;
+                const location = document.getElementById('jobLocation').value;
+                const description = document.getElementById('jobDescription').value;
+                const requirements = document.getElementById('jobRequirements').value;
+                
+                // Add to database
+                db.jobs.push({
+                    id: `JOB${db.jobs.length + 1}`.padStart(6, '0'),
+                    title: title,
+                    department: department,
+                    type: type,
+                    experience: experience ? parseInt(experience) : 0,
+                    salary: salary,
+                    location: location,
+                    description: description,
+                    requirements: requirements,
+                    postedDate: new Date().toISOString().split('T')[0],
+                    status: "Active",
+                    applicants: 0
+                });
+                
+                // Close modal and notify
+                hideModal('addJob');
+                alert('Job posted successfully!');
+            });
+            
+            // Attendance check-in/out functionality
+            const checkInBtn = document.getElementById('checkInBtn');
+            const checkOutBtn = document.getElementById('checkOutBtn');
+            const markCheckInBtn = document.getElementById('markCheckInBtn');
+            const markCheckOutBtn = document.getElementById('markCheckOutBtn');
+            
+            let isCheckedIn = false;
+            let checkInTime = '';
+            
+            markCheckInBtn.addEventListener('click', function() {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                checkInTime = timeStr;
+                isCheckedIn = true;
+                
+                document.getElementById('checkInTime').textContent = timeStr;
+                checkInBtn.disabled = true;
+                checkOutBtn.disabled = false;
+                
+                // Add to database
+                const today = now.toISOString().split('T')[0];
+                db.attendance.unshift({
+                    id: `ATT${db.attendance.length + 1}`.padStart(6, '0'),
+                    employeeId: auth.currentUser.id,
+                    date: today,
+                    checkIn: timeStr,
+                    checkOut: null,
+                    workingHours: null,
+                    status: "Present"
+                });
+
+                // Close modal and notify
+                hideModal('attendance');
+                alert('Checked in successfully at ' + timeStr);
+            });
+            
+            markCheckOutBtn.addEventListener('click', function() {
+                if (!isCheckedIn) {
+                    alert('You need to check in first!');
+                    return;
+                }
+                
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                document.getElementById('checkOutTime').textContent = timeStr;
+                
+                // Calculate working hours
+                const checkIn = checkInTime.split(':');
+                const checkOut = timeStr.split(':');
+                let checkInMinutes = parseInt(checkIn[0]) * 60 + parseInt(checkIn[1]);
+                let checkOutMinutes = parseInt(checkOut[0]) * 60 + parseInt(checkOut[1]);
+                
+                // Handle PM time if in 12-hour format
+                if (checkInTime.includes('PM') && parseInt(checkIn[0]) < 12) {
+                    checkInMinutes += 12 * 60;
+                }
+                if (timeStr.includes('PM') && parseInt(checkOut[0]) < 12) {
+                    checkOutMinutes += 12 * 60;
+                }
+                
+                const workingMinutes = checkOutMinutes - checkInMinutes;
+                const hours = Math.floor(workingMinutes / 60);
+                const minutes = workingMinutes % 60;
+                const workingHrs = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                
+                document.getElementById('workingHours').textContent = workingHrs;
+                
+                // Update database
+                const today = now.toISOString().split('T')[0];
+                const attendance = db.attendance.find(a => a.date === today && a.employeeId === auth.currentUser.id);
+                if (attendance) {
+                    attendance.checkOut = timeStr;
+                    attendance.workingHours = workingHrs;
+                }
+                
+                isCheckedIn = false;
+                checkInBtn.disabled = false;
+                checkOutBtn.disabled = true;
+                
+                // Close modal and notify
+                hideModal('attendance');
+                alert('Checked out successfully at ' + timeStr);
+            });
+            
+            // Location tracking toggle
+            document.getElementById('locationTracking').addEventListener('change', function() {
+                const locationInfo = document.getElementById('locationInfo');
+                
+                if (this.checked) {
+                    locationInfo.classList.remove('hidden');
+                    
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                
+                                // Normally you would reverse geocode here to get address
+                                document.getElementById('currentLocation').textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                            },
+                            () => {
+                                document.getElementById('currentLocation').textContent = 'Unable to retrieve your location';
+                            }
+                        );
+                    } else {
+                        document.getElementById('currentLocation').textContent = 'Geolocation is not supported by your browser';
+                    }
+                } else {
+                    locationInfo.classList.add('hidden');
+                }
+            });
+            
+            // Modal date time update
+            function updateAttendanceDateTime() {
+                const now = new Date();
+                const options = { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    hour12: true 
+                };
+                document.getElementById('attendanceDateTime').textContent = now.toLocaleDateString('en-US', options);
+            }
+            
+            // Update attendance date time every second
+            setInterval(updateAttendanceDateTime, 1000);
+            updateAttendanceDateTime();
+            
+            // Initialize any charts or visualizations
+            function initializeCharts() {
+                // Attendance Chart
+                const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+                new Chart(attendanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        datasets: [{
+                            label: 'Present',
+                            data: [21, 19, 22, 20, 18, 21, 22, 19, 20, 21, 17, 18],
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }, {
+                            label: 'Absent',
+                            data: [1, 2, 0, 1, 3, 0, 0, 2, 1, 0, 3, 2],
+                            borderColor: '#EF4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }, {
+                            label: 'On Leave',
+                            data: [0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 2, 2],
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
+                        scales: {
+                            y: {
+                                min: 0,
+                                ticks: {
+                                    stepSize: 5
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Department Chart
+                const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+                new Chart(departmentCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['IT', 'HR', 'Finance', 'Marketing', 'Design', 'Sales', 'Operations'],
+                        datasets: [{
+                            data: [72, 25, 30, 38, 27, 42, 13],
+                            backgroundColor: [
+                                '#3B82F6',
+                                '#10B981',
+                                '#F59E0B',
+                                '#EF4444',
+                                '#8B5CF6',
+                                '#EC4899',
+                                '#6366F1'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            }
+                        }
+                    }
+                });
+                
+                // Performance Chart
+                const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+                new Chart(performanceCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Q2 2022', 'Q3 2022', 'Q4 2022', 'Q1 2023'],
+                        datasets: [{
+                            label: 'Performance Rating',
+                            data: [3.8, 4.2, 4.5, 4.0],
+                            backgroundColor: [
+                                'rgba(246, 173, 85, 0.7)',
+                                'rgba(80, 165, 218, 0.7)',
+                                'rgba(142, 210, 201, 0.7)',
+                                'rgba(139, 92, 246, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgb(246, 173, 85)',
+                                'rgb(80, 165, 218)',
+                                'rgb(142, 210, 201)',
+                                'rgb(139, 92, 246)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: 5,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Utility function to calculate salary components
+            window.calculateSalary = function() {
+                // Get values
+                const basicSalary = parseFloat(document.getElementById('basicSalary').value) || 0;
+                const hra = parseFloat(document.getElementById('hra').value) || 0;
+                const transportAllowance = parseFloat(document.getElementById('transportAllowance').value) || 0;
+                const medicalAllowance = parseFloat(document.getElementById('medicalAllowance').value) || 0;
+                const specialAllowance = parseFloat(document.getElementById('specialAllowance').value) || 0;
+                const bonus = parseFloat(document.getElementById('bonus').value) || 0;
+                
+                const incomeTax = parseFloat(document.getElementById('incomeTax').value) || 0;
+                const providentFund = parseFloat(document.getElementById('providentFund').value) || 0;
+                const professionalTax = parseFloat(document.getElementById('professionalTax').value) || 0;
+                const healthInsurance = parseFloat(document.getElementById('healthInsurance').value) || 0;
+                
+                // Calculate totals
+                const totalEarnings = basicSalary + hra + transportAllowance + medicalAllowance + specialAllowance + bonus;
+                const totalDeductions = incomeTax + providentFund + professionalTax + healthInsurance;
+                const netSalary = totalEarnings - totalDeductions;
+                
+                // Update form values
+                document.getElementById('totalEarnings').value = totalEarnings;
+                document.getElementById('totalDeductions').value = totalDeductions;
+                document.getElementById('netSalary').value = netSalary;
+                
+                return {
+                    totalEarnings,
+                    totalDeductions,
+                    netSalary
+                };
+            };
+            
+            // Generate PDF payslip
+            window.previewPayslip = function() {
+                calculateSalary();
+                alert('Payslip preview functionality would display a modal with the formatted payslip here.');
+            };
+            
+            // Download payslip function
+            window.downloadPayslip = function(month) {
+                alert(`Downloading payslip for ${month}...\nIn a real implementation, this would generate a PDF file.`);
+            };
+            
+            // View payslip function
+            window.viewPayslip = function(month) {
+                alert(`Viewing payslip for ${month}...\nIn a real implementation, this would show a detailed payslip in a modal window.`);
+            };
+            
+            // View job details
+            window.showModal = function(id, additionalId) {
+                const modal = document.getElementById(`${id}Modal`);
+                
+                if (id === 'viewJob' && additionalId) {
+                    // Find the job details
+                    const job = db.jobs.find(j => j.id === additionalId);
+                    
+                    if (job) {
+                        // Update modal with job details
+                        document.getElementById('viewJobTitle').textContent = job.title;
+                        // Additional code to populate job details would go here
+                    }
+                }
+                
+                if (modal) {
+                    modal.style.display = 'block';
+                }
+            };
+            
+            window.hideModal = function(id) {
+                const modal = document.getElementById(`${id}Modal`);
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            };
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
